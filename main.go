@@ -28,8 +28,8 @@ func main() {
 
 func deny(err error) {
 	if err != nil {
-		// log.Fatalln(err)
-		panic(err)
+		_, file, line, _ := runtime.Caller(1)
+		log.Fatalln("Fatal error in %s:%d: %s\n", file, line, err)
 	}
 }
 

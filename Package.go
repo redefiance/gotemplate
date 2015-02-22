@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go/parser"
 	"go/token"
 	"log"
@@ -67,6 +68,8 @@ func parsePackage(dirpath string) *Package {
 }
 
 func (p *Package) update() {
+	notChanged := true
+
 	imports := map[*Package]struct{}{}
 	for _, f := range p.Files {
 		for _, pkg := range f.Imports {
@@ -75,6 +78,14 @@ func (p *Package) update() {
 				pkg.update()
 			}
 		}
-		f.update()
+
+		if f.Templates != nil {
+			f.update()
+			notChanged = false
+		}
+	}
+
+	if notChanged {
+		fmt.Printf("%s: no templates found\n", p.Path)
 	}
 }

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
 	"go/printer"
+	"log"
 	"os"
 	"path"
 	"strings"
@@ -41,7 +43,8 @@ func (p *Package) addFile(filepath string, fast *ast.File) {
 		return
 	}
 	if !ignoreBuild && f.Templates != nil {
-		// TODO
+		log.Println("adding +build ignore to", path.Base(f.Path))
+		f.prepend("// +build ignore\n\n")
 	}
 
 	for _, imp := range f.Ast.Imports {
@@ -61,14 +64,10 @@ func (p *Package) addFile(filepath string, fast *ast.File) {
 }
 
 func (f *File) update() {
-	if f.Templates == nil {
-		return
-	}
-
 	filepath := strings.Replace(f.Path, ".go", "_impl.go", 1)
 	// TODO sanity check
 
-	fmt.Println("update", filepath)
+	fmt.Println("updated", filepath)
 	buf, err := os.Create(filepath)
 	deny(err)
 
@@ -84,7 +83,6 @@ func (f *File) update() {
 		}
 		buf.WriteString(")\n\n")
 	}
-	// buf := bytes.NewBufferString("// +gotemplate ignore\n\n")
 	for _, t := range f.Templates {
 		for impl, _ := range t.Implementors {
 			for ref, _ := range t.References {
@@ -105,7 +103,24 @@ func (f *File) update() {
 		}
 	}
 
-	// fmt.Println(buf.String())
-
 	buf.Close()
+}
+
+func (f *File) prepend(text string) {
+	buf := bytes.NewBufferString(text)
+	file, err := os.Open(f.Path)
+	deny(err)
+
+	_, err = buf.ReadFrom(file)
+	deny(err)
+	file.Close()
+	deny(os.Rename(f.Path, f.Path+"_backup"))
+
+	file, err = os.Create(f.Path)
+	deny(err)
+	_, err = file.Write(buf.Bytes())
+	deny(err)
+	file.Close()
+
+	deny(os.Remove(f.Path + "_backup"))
 }
