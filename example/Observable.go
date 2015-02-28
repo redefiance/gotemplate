@@ -57,3 +57,28 @@ func (o *Observer_T) Close() {
 	delete(o.observable.observers, o)
 	o.observable.mutex.Unlock()
 }
+
+type CircularBuffer_T struct {
+	data   []T
+	curPos int
+}
+
+func newCircularBuffer_T(size int) {
+	return CircularBuffer_T{data: make([]T, size)}
+}
+
+func (b CircularBuffer_T) Push(value T) {
+	b.curPos++
+	if b.curPos >= len(b.data) {
+		b.curPos = 0
+	}
+	b.data[b.curPos] = value
+}
+
+func (b CircularBuffer_T) At(index uint) T {
+	pos := b.curPos - index
+	for pos < 0 {
+		pos += len(b.data)
+	}
+	return b.data[pos]
+}

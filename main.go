@@ -29,13 +29,13 @@ func main() {
 func deny(err error) {
 	if err != nil {
 		_, file, line, _ := runtime.Caller(1)
-		log.Fatalln("Fatal error in %s:%d: %s\n", file, line, err)
+		log.Fatalf("Fatal error in %s:%d: %s\n", file, line, err)
 	}
 }
 
 func assert(condition bool) {
 	if condition == false {
 		_, file, line, _ := runtime.Caller(1)
-		log.Fatalln("assertion failed in %s:%d\n", file, line)
+		log.Fatalf("assertion failed in %s:%d\n", file, line)
 	}
 }
