@@ -22,8 +22,9 @@ func main() {
 
 	*fDir = path.Clean(path.Join(wd, *fDir))
 
-	p := parsePackage(*fDir)
-	p.update()
+	if p := parsePackage(*fDir); p != nil {
+		p.update()
+	}
 }
 
 func deny(err error) {

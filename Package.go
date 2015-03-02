@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"log"
 	"os"
+	"strings"
 )
 
 var Packages = map[string]*Package{}
@@ -25,8 +26,24 @@ func parsePackage(dirpath string) *Package {
 	pkgs, err := parser.ParseDir(fs, dirpath, nil, parser.ParseComments)
 	if err != nil {
 		if _, ok := err.(*os.PathError); !ok {
-			log.Println(err)
+			fmt.Println(err)
 		}
+		return nil
+	}
+
+	switch len(pkgs) {
+	case 0:
+		log.Fatalf("No packages found in %s.\n", dirpath)
+		return nil
+	case 1:
+		// continue
+	default:
+		var names []string
+		for name, _ := range pkgs {
+			names = append(names, name)
+		}
+		fmt.Printf("Found multiple packages in %s: %s\n",
+			dirpath, strings.Join(names, ", "))
 		return nil
 	}
 
@@ -35,13 +52,12 @@ func parsePackage(dirpath string) *Package {
 	}
 	Packages[p.Path] = p
 
-	assert(len(pkgs) <= 1)
-
 	for _, pkgast := range pkgs {
 		p.Name = pkgast.Name
 		for filepath, fast := range pkgast.Files {
 			p.addFile(filepath, fast)
 		}
+		break
 	}
 
 	for _, f := range p.Files {
@@ -63,7 +79,6 @@ func parsePackage(dirpath string) *Package {
 			}
 		}
 	}
-
 	return p
 }
 
