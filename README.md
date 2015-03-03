@@ -50,9 +50,13 @@ var buf = newCircularBuffer_uint64(10)
 
 Run `gotemplate` from your project directory and it will instantiate your templates for every type referenced by the source code in `CircularBuffer_impl.go`.
 
+### Flags
+
+* `-d path`: uses `path` instead of the current working directory to search for templates  
+* `-r`: generates templates in all imported packages recursively  
+
 ### Limitations
 
 * Only works with 1 Template Parameter  
 * Doesn't work with imported types (e.g. `CircularBuffer_os.FileInfo` is not allowed). Wrap imported types into a package-local type if you want to use them.  
 * Doesn't work with both value and pointer types at the same time: You have to specify in the template if you want to use `T` or `*T`
-
