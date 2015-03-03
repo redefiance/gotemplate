@@ -23,51 +23,50 @@ func parsePackage(dirpath string) *Package {
 
 	fs := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fs, dirpath, nil, parser.ParseComments)
-	if err != nil {
+	if err == nil {
+		for pkgname, pkgast := range pkgs {
+			if strings.HasSuffix(pkgname, "_test") {
+				continue
+			}
+
+			p := &Package{
+				Path: dirpath,
+			}
+			Packages[p.Path] = p
+
+			p.Name = pkgast.Name
+			for filepath, fast := range pkgast.Files {
+				p.addFile(filepath, fast)
+			}
+
+			for _, f := range p.Files {
+				if f.Templates != nil {
+					f.parseTemplates()
+				}
+			}
+
+			for _, f := range p.Files {
+				if f.Templates == nil {
+					p.findReferences(f)
+				}
+			}
+
+			for _, f := range p.Files {
+				for _, t := range f.Templates {
+					if len(t.Implementors) > 0 {
+						p.findReferencesRecursive(t)
+					}
+				}
+			}
+			return p
+		}
+	} else {
 		if _, ok := err.(*os.PathError); !ok {
 			fmt.Println(err)
 		}
-		return nil
 	}
 
-	for pkgname, pkgast := range pkgs {
-		if strings.HasSuffix(pkgname, "_test") {
-			continue
-		}
-
-		p := &Package{
-			Path: dirpath,
-		}
-		Packages[p.Path] = p
-
-		p.Name = pkgast.Name
-		for filepath, fast := range pkgast.Files {
-			p.addFile(filepath, fast)
-		}
-
-		for _, f := range p.Files {
-			if f.Templates != nil {
-				f.parseTemplates()
-			}
-		}
-
-		for _, f := range p.Files {
-			if f.Templates == nil {
-				p.findReferences(f)
-			}
-		}
-
-		for _, f := range p.Files {
-			for _, t := range f.Templates {
-				if len(t.Implementors) > 0 {
-					p.findReferencesRecursive(t)
-				}
-			}
-		}
-		return p
-	}
-
-	// no package found?
+	fmt.Printf("%s: no package found\n", dirpath)
 	return nil
 }
 
