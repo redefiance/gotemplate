@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
-	"log"
 	"os"
 	"strings"
 )
@@ -31,76 +30,63 @@ func parsePackage(dirpath string) *Package {
 		return nil
 	}
 
-	switch len(pkgs) {
-	case 0:
-		log.Fatalf("No packages found in %s.\n", dirpath)
-		return nil
-	case 1:
-		// continue
-	default:
-		var names []string
-		for name, _ := range pkgs {
-			names = append(names, name)
+	for pkgname, pkgast := range pkgs {
+		if strings.HasSuffix(pkgname, "_test") {
+			continue
 		}
-		fmt.Printf("Found multiple packages in %s: %s\n",
-			dirpath, strings.Join(names, ", "))
-		return nil
-	}
 
-	p := &Package{
-		Path: dirpath,
-	}
-	Packages[p.Path] = p
+		p := &Package{
+			Path: dirpath,
+		}
+		Packages[p.Path] = p
 
-	for _, pkgast := range pkgs {
 		p.Name = pkgast.Name
 		for filepath, fast := range pkgast.Files {
 			p.addFile(filepath, fast)
 		}
-		break
-	}
 
-	for _, f := range p.Files {
-		if f.Templates != nil {
-			f.parseTemplates()
-		}
-	}
-
-	for _, f := range p.Files {
-		if f.Templates == nil {
-			p.findReferences(f)
-		}
-	}
-
-	for _, f := range p.Files {
-		for _, t := range f.Templates {
-			if len(t.Implementors) > 0 {
-				p.findReferencesRecursive(t)
+		for _, f := range p.Files {
+			if f.Templates != nil {
+				f.parseTemplates()
 			}
 		}
+
+		for _, f := range p.Files {
+			if f.Templates == nil {
+				p.findReferences(f)
+			}
+		}
+
+		for _, f := range p.Files {
+			for _, t := range f.Templates {
+				if len(t.Implementors) > 0 {
+					p.findReferencesRecursive(t)
+				}
+			}
+		}
+		return p
 	}
-	return p
+
+	// no package found?
+	return nil
 }
 
-func (p *Package) update() {
-	notChanged := true
+func (p *Package) generate() {
+	numImplementations := 0
 
 	imports := map[*Package]struct{}{}
 	for _, f := range p.Files {
 		for _, pkg := range f.Imports {
 			if _, ok := imports[pkg]; !ok {
 				imports[pkg] = struct{}{}
-				pkg.update()
+				pkg.generate()
 			}
 		}
 
 		if f.Templates != nil {
-			f.update()
-			notChanged = false
+			numImplementations += f.generate()
 		}
 	}
 
-	if notChanged {
-		fmt.Printf("%s: no templates found\n", p.Path)
-	}
+	fmt.Printf("%s: %d template instantiations generated\n", p.Path, numImplementations)
 }

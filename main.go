@@ -9,10 +9,14 @@ import (
 	"runtime"
 )
 
-var fDir = flag.String("d", "", "desc")
+var (
+	// currently no way to display description of these flags
+	fDir       = flag.String("d", "", "TODO")
+	fRecursive = flag.Bool("r", false, "TODO")
 
-var GOPATH = os.Getenv("GOPATH")
-var FS = token.NewFileSet()
+	GOPATH = os.Getenv("GOPATH")
+	FS     = token.NewFileSet()
+)
 
 func main() {
 	flag.Parse()
@@ -20,10 +24,13 @@ func main() {
 	wd, err := os.Getwd()
 	deny(err)
 
-	*fDir = path.Clean(path.Join(wd, *fDir))
+	if !path.IsAbs(*fDir) {
+		*fDir = path.Join(wd, *fDir)
+	}
+	path.Clean(*fDir)
 
 	if p := parsePackage(*fDir); p != nil {
-		p.update()
+		p.generate()
 	}
 }
 

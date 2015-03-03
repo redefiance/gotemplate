@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"go/ast"
 	"go/printer"
 	"log"
@@ -47,27 +46,28 @@ func (p *Package) addFile(filepath string, fast *ast.File) {
 		f.prepend("// +build ignore\n\n")
 	}
 
-	for _, imp := range f.Ast.Imports {
-		pkgpath := path.Join(GOPATH, "src", strings.Trim(imp.Path.Value, "\""))
-		if pkg := parsePackage(pkgpath); pkg != nil {
-			var name string
-			if imp.Name != nil {
-				name = imp.Name.Name
-			} else {
-				name = path.Base(pkg.Path)
+	if *fRecursive {
+		for _, imp := range f.Ast.Imports {
+			pkgpath := path.Join(GOPATH, "src", strings.Trim(imp.Path.Value, "\""))
+			if pkg := parsePackage(pkgpath); pkg != nil {
+				var name string
+				if imp.Name != nil {
+					name = imp.Name.Name
+				} else {
+					name = path.Base(pkg.Path)
+				}
+				f.Imports[name] = pkg
 			}
-			f.Imports[name] = pkg
 		}
 	}
 
 	p.Files = append(p.Files, f)
 }
 
-func (f *File) update() {
+func (f *File) generate() (numImplementations int) {
 	filepath := strings.Replace(f.Path, ".go", "_impl.go", 1)
 	// TODO sanity check
 
-	fmt.Println("updated", filepath)
 	buf, err := os.Create(filepath)
 	deny(err)
 
@@ -86,6 +86,8 @@ func (f *File) update() {
 	}
 	for _, t := range f.Templates {
 		for impl, _ := range t.Implementors {
+			numImplementations++
+
 			for ref, _ := range t.References {
 				parts := strings.Split(ref.Name, "_")
 				parts[len(parts)-1] = impl
@@ -105,6 +107,8 @@ func (f *File) update() {
 	}
 
 	buf.Close()
+
+	return
 }
 
 func (f *File) prepend(text string) {

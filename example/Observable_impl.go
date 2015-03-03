@@ -7,17 +7,6 @@ import (
   "sync"
 )
 
-type Observer_God struct {
-	Notify		func(God)
-	observable	*Observable_God
-}
-
-func (o *Observer_God) Close() {
-	o.observable.mutex.Lock()
-	delete(o.observable.observers, o)
-	o.observable.mutex.Unlock()
-}
-
 type Observable_God struct {
 	mutex		sync.RWMutex
 	value		God
@@ -52,5 +41,16 @@ func (o *Observable_God) Observe(callback func(God)) *Observer_God {
 
 func newObservable_God(value God) *Observable_God {
 	return &Observable_God{value: value, observers: make(map[*Observer_God]struct{})}
+}
+
+type Observer_God struct {
+	Notify		func(God)
+	observable	*Observable_God
+}
+
+func (o *Observer_God) Close() {
+	o.observable.mutex.Lock()
+	delete(o.observable.observers, o)
+	o.observable.mutex.Unlock()
 }
 
